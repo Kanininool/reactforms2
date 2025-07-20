@@ -1,0 +1,25 @@
+{
+  "tabs": [
+    {
+      "name": "Personal Info",
+      "fields": [
+        { "type": "text", "label": "Name", "required": true, "maxLength": 50 },
+        { "type": "date", "label": "Date of Birth", "required": true }
+      ]
+    },
+    {
+      "name": "Experience",
+      "fields": [
+        { "type": "select", "label": "Years of Experience", "required": true, "options": [1, 2, 3, 4, 5] },
+        { "type": "checkbox", "label": "Willing to Relocate", "required": false }
+      ]
+    },
+    {
+      "name": "Asset Details",
+      "fields": [
+        { "type": "radio", "label": "Laptop Provided", "required": true, "options": ["Yes", "No"] },
+        { "type": "multiselect", "label": "Software Tools", "required": false, "api": "/api/tools" }
+      ]
+    }
+  ]
+}
