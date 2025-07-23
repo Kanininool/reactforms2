@@ -1,7 +1,7 @@
-import React from 'react';
-import { Table } from 'antd';
+import React, { useState } from 'react';
+import { Table, Button } from 'antd';
+import { DownOutlined, RightOutlined } from '@ant-design/icons';
 
-// Main table data
 const mainData = [
   {
     key: '1',
@@ -24,35 +24,62 @@ const mainData = [
   },
 ];
 
-// Columns for main table
 const mainColumns = [
   { title: 'Name', dataIndex: 'name', key: 'name' },
   { title: 'Age', dataIndex: 'age', key: 'age' },
   { title: 'Address', dataIndex: 'address', key: 'address' },
 ];
 
-// Columns for nested table
 const nestedColumns = [
   { title: 'Date', dataIndex: 'date', key: 'date' },
   { title: 'Activity', dataIndex: 'activity', key: 'activity' },
 ];
 
-const NestedTable = () => {
+const CustomExpandTable = () => {
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+
+  const toggleExpand = (record) => {
+    const key = record.key;
+    setExpandedRowKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const columnsWithAction = [
+    ...mainColumns,
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Button
+          type="link"
+          onClick={() => toggleExpand(record)}
+          icon={expandedRowKeys.includes(record.key) ? <DownOutlined /> : <RightOutlined />}
+        >
+          {expandedRowKeys.includes(record.key) ? 'Collapse' : 'Expand'}
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <Table
-      columns={mainColumns}
+      columns={columnsWithAction}
       dataSource={mainData}
       expandable={{
         expandedRowRender: (record) => (
           <Table
-            columns={nestedColumns            dataSource={record.details}
+            columns={nestedColumns}
+            dataSource={record.details}
             pagination={false}
           />
         ),
-        rowExpandable: (record) => record.details.length > 0,
+        expandedRowKeys,
+        onExpandedRowsChange: setExpandedRowKeys,
+        expandIconColumnIndex: -1, // disables default expand icon
       }}
     />
   );
 };
 
-export default NestedTable;
+export default CustomExpandTable;
