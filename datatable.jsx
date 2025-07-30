@@ -40,8 +40,10 @@ const App = () => {
     setFilters(newFilters);
 
     const filtered = initialData.filter((item) => {
-      const matchA = item[fieldA].toLowerCase().includes(valueA.toLowerCase());
-      const matchB = item[fieldB].toLowerCase().includes(valueB.toLowerCase());
+      const matchA = (item[fieldA] || '').toLowerCase().includes(valueA.toLowerCase());
+      const matchB = fieldB
+        ? (item[fieldB] || '').toLowerCase().includes(valueB.toLowerCase())
+        : true;
       return matchA && matchB;
     });
 
@@ -54,7 +56,7 @@ const App = () => {
     setFilteredData(initialData);
   };
 
-  const getColumn = (title, fieldA, fieldB) => ({
+  const getColumn = (title, fieldA, fieldB = null) => ({
     title,
     key: fieldA,
     filterDropdown: () => (
@@ -67,14 +69,16 @@ const App = () => {
           }
           style={{ marginBottom: 8, display: 'block' }}
         />
-        <Input
-          placeholder={`Search ${fieldB}`}
-          value={filters[fieldB] || ''}
-          onChange={(e) =>
-            handleSearch(fieldA, fieldB, filters[fieldA] || '', e.target.value)
-          }
-          style={{ marginBottom: 8, display: 'block' }}
-        />
+        {fieldB && (
+          <Input
+            placeholder={`Search ${fieldB}`}
+            value={filters[fieldB] || ''}
+            onChange={(e) =>
+              handleSearch(fieldA, fieldB, filters[fieldA] || '', e.target.value)
+            }
+            style={{ marginBottom: 8, display: 'block' }}
+          />
+        )}
         <Space>
           <Button
             type="primary"
@@ -83,7 +87,7 @@ const App = () => {
                 fieldA,
                 fieldB,
                 filters[fieldA] || '',
-                filters[fieldB] || ''
+                fieldB ? filters[fieldB] || '' : ''
               )
             }
             icon={<SearchOutlined />}
@@ -102,13 +106,16 @@ const App = () => {
         </Space>
       </div>
     ),
-    filterIcon: (filtered) => (
-      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
+    filterIcon: () => {
+      const isFiltered =
+        (filters[fieldA] && filters[fieldA].trim() !== '') ||
+        (fieldB && filters[fieldB] && filters[fieldB].trim() !== '');
+      return <SearchOutlined style={{ color: isFiltered ? '#1890ff' : undefined }} />;
+    },
     render: (_, record) => (
       <div>
-        <div>{record[fieldA]}</div>
-        <div style={{ color: 'gray' }}>{record[fieldB]}</div>
+        <div>{record[fieldA] || '-'}</div>
+        {fieldB && <div style={{ color: 'gray' }}>{record[fieldB] || '-'}</div>}
       </div>
     ),
   });
@@ -123,11 +130,10 @@ const App = () => {
     getColumn('Relevant Experience', 'relevantExpYears', 'relevantExpMonths'),
     getColumn('Team Lead', 'teamLead', 'teamLeadEmail'),
     getColumn('Manager', 'manager', 'managerEmail'),
-    getColumn('Company', 'company', 'location'),
+    getColumn('Company', 'company', 'location'), // Can also be just getColumn('Company', 'company') if needed
   ];
 
   return <Table columns={columns} dataSource={filteredData} />;
 };
 
 export default App;
-
