@@ -2,78 +2,111 @@ import React, { useState } from 'react';
 import { Table, Input, Button, Space } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 
-const data = [
-  { key: '1', firstName: 'John', lastName: 'Brown', age: 32 },
-  { key: '2', firstName: 'Jim', lastName: 'Green', age: 42 },
-  { key: '3', firstName: 'Joe', lastName: 'Black', age: 29 },
-  { key: '4', firstName: 'Jake', lastName: 'White', age: 36 },
+const initialData = [
+  {
+    key: '1',
+    firstName: 'John', lastName: 'Doe',
+    ageYears: '30', ageMonths: '6',
+    gender: 'Male', pronouns: 'He/Him',
+    dob: '1993-01-15', birthPlace: 'New York',
+    primarySkill: 'React', secondarySkill: 'Node.js',
+    totalExpYears: '8', totalExpMonths: '3',
+    relevantExpYears: '5', relevantExpMonths: '2',
+    teamLead: 'Alice Smith', teamLeadEmail: 'alice@example.com',
+    manager: 'Bob Johnson', managerEmail: 'bob@example.com',
+    company: 'TechCorp', location: 'San Francisco',
+  },
+  {
+    key: '2',
+    firstName: 'Jane', lastName: 'Smith',
+    ageYears: '28', ageMonths: '2',
+    gender: 'Female', pronouns: 'She/Her',
+    dob: '1995-05-20', birthPlace: 'Chicago',
+    primarySkill: 'Angular', secondarySkill: 'Java',
+    totalExpYears: '6', totalExpMonths: '10',
+    relevantExpYears: '4', relevantExpMonths: '6',
+    teamLead: 'Charlie Ray', teamLeadEmail: 'charlie@example.com',
+    manager: 'Dana Lee', managerEmail: 'dana@example.com',
+    company: 'InnovateX', location: 'Austin',
+  },
 ];
 
 const App = () => {
-  const [searchText, setSearchText] = useState('');
-  const [filteredData, setFilteredData] = useState(data);
+  const [filters, setFilters] = useState({});
+  const [filteredData, setFilteredData] = useState(initialData);
 
-  const handleSearch = () => {
-    const filtered = data.filter((item) =>
-      `${item.firstName} ${item.lastName}`.toLowerCase().includes(searchText.toLowerCase())
+  const handleSearch = (fieldA, fieldB, value) => {
+    const newFilters = { ...filters, [fieldA]: value };
+    setFilters(newFilters);
+
+    const filtered = initialData.filter((item) =>
+      [item[fieldA], item[fieldB]].some((field) =>
+        field.toLowerCase().includes(value.toLowerCase())
+      )
     );
     setFilteredData(filtered);
   };
 
-  const handleReset = () => {
-    setSearchText('');
-    setFilteredData(data);
+  const handleReset = (fieldA) => {
+    const newFilters = { ...filters, [fieldA]: '' };
+    setFilters(newFilters);
+    setFilteredData(initialData);
   };
 
+  const getColumn = (title, fieldA, fieldB) => ({
+    title,
+    key: fieldA,
+    filterDropdown: () => (
+      <div style={{ padding: 8 }}>
+        <Input
+          placeholder={`Search ${title}`}
+          value={filters[fieldA] || ''}
+          onChange={(e) => handleSearch(fieldA, fieldB, e.target.value)}
+          onPressEnter={(e) => handleSearch(fieldA, fieldB, e.target.value)}
+          style={{ marginBottom: 8, display: 'block' }}
+        />
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => handleSearch(fieldA, fieldB, filters[fieldA] || '')}
+            icon={<SearchOutlined />}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Search
+          </Button>
+          <Button
+            onClick={() => handleReset(fieldA)}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Reset
+          </Button>
+        </Space>
+      </div>
+    ),
+    filterIcon: (filtered) => (
+      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+    ),
+    render: (_, record) => (
+      <div>
+        <div>{record[fieldA]}</div>
+        <div style={{ color: 'gray' }}>{record[fieldB]}</div>
+      </div>
+    ),
+  });
+
   const columns = [
-    {
-      title: 'Full Name',
-      key: 'fullName',
-      filterDropdown: () => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Search First or Last Name"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onPressEnter={handleSearch}
-            style={{ marginBottom: 8, display: 'block' }}
-          />
-          <Space>
-            <Button
-              type="primary"
-              onClick={handleSearch}
-              icon={<SearchOutlined />}
-              size="small"
-              style={{ width: 90 }}
-            >
-              Search
-            </Button>
-            <Button
-              onClick={handleReset}
-              size="small"
-              style={{ width: 90 }}
-            >
-              Reset
-            </Button>
-          </Space>
-        </div>
-      ),
-      filterIcon: (filtered) => (
-        <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-      ),
-      onFilterDropdownVisibleChange: (visible) => {
-        if (visible) {
-          setTimeout(() => document.querySelector('input')?.focus(), 100);
-        }
-      },
-      render: (_, record) => (
-        <div>
-          <div>{record.firstName}</div>
-          <div style={{ color: 'gray' }}>{record.lastName}</div>
-             title: 'Age',
-      dataIndex: 'age',
-      key: 'age',
-    },
+    getColumn('Name', 'firstName', 'lastName'),
+    getColumn('Age', 'ageYears', 'ageMonths'),
+    getColumn('Gender', 'gender', 'pronouns'),
+    getColumn('Date of Birth', 'dob', 'birthPlace'),
+    getColumn('Skills', 'primarySkill', 'secondarySkill'),
+    getColumn('Total Experience', 'totalExpYears', 'totalExpMonths'),
+    getColumn('Relevant Experience', 'relevantExpYears', 'relevantExpMonths'),
+    getColumn('Team Lead', 'teamLead', 'teamLeadEmail'),
+    getColumn('Manager', 'manager', 'managerEmail'),
+    getColumn('Company', 'company', 'location'),
   ];
 
   return <Table columns={columns} dataSource={filteredData} />;
