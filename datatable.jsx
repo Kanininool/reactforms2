@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -6,6 +5,7 @@ import {
   Button,
   DatePicker,
   InputNumber,
+  Select,
 } from 'antd';
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
@@ -13,6 +13,7 @@ import { saveAs } from 'file-saver';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 const generateData = () => {
   const data = [];
@@ -34,14 +35,17 @@ const generateData = () => {
   return data;
 };
 
+const getUniqueValues = (data, field) => [...new Set(data.map(item => item[field]))];
+
 const App = () => {
+  const originalData = generateData();
   const [searchText, setSearchText] = useState('');
-  const [filteredData, setFilteredData] = useState(generateData());
+  const [filteredData, setFilteredData] = useState(originalData);
 
   const handleGlobalSearch = (e) => {
     const value = e.target.value.toLowerCase();
     setSearchText(value);
-    const filtered = generateData().filter((item) =>
+    const filtered = originalData.filter((item) =>
       Object.values(item).some((val) =>
         String(val).toLowerCase().includes(value)
       )
@@ -49,12 +53,13 @@ const App = () => {
     setFilteredData(filtered);
   };
 
-  const getCombinedFilterDropdown = (fields, types, setSelectedKeys, selectedKeys, confirm, clearFilters) => {
+  const getCombinedFilterDropdown = (fields, types, setSelectedKeys, selectedKeys, confirm) => {
     const filters = selectedKeys[0] || {};
     return (
-      <div style={{ padding: 8 }}>
+      <div style={{ padding: 8, maxHeight: 400, overflowY: 'auto' }}>
         {fields.map((field, index) => {
           const type = types[index];
+          const uniqueOptions = getUniqueValues(originalData, field);
           if (type === 'date') {
             return (
               <div key={field} style={{ marginBottom: 8 }}>
@@ -105,29 +110,34 @@ const App = () => {
           } else {
             return (
               <div key={field} style={{ marginBottom: 8 }}>
-                <Input
-                  placeholder={`Search ${field}`}
-                  value={filters?.[field] || ''}
-                  onChange={(e) =>
+                <div>{field}</div>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  style={{ width: '100%' }}
+                  placeholder={`Select ${field}`}
+                  value={filters?.[field] || []}
+                  onChange={(vals) =>
                     setSelectedKeys([
                       {
                         ...filters,
-                        [field]: e.target.value,
+                        [field]: vals,
                       },
                     ])
                   }
-                />
+                >
+                  {uniqueOptions.map((val) => (
+                    <Option key={val} value={val}>
+                      {val}
+                    </Option>
+                  ))}
+                </Select>
               </div>
             );
           }
         })}
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            type="primary"
-            onClick={() => confirm()}
-            size="small"
-            style={{ width: '48%' }}
-          >
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+          <Button type="primary" onClick={() => confirm()} size="small" style={{ width: '48%' }}>
             Filter
           </Button>
           <Button
@@ -146,8 +156,8 @@ const App = () => {
   };
 
   const getCombinedFilter = (fields, types) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
-      getCombinedFilterDropdown(fields, types, setSelectedKeys, selectedKeys, confirm, clearFilters),
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+      getCombinedFilterDropdown(fields, types, setSelectedKeys, selectedKeys, confirm),
     onFilter: (value, record) => {
       const filters = value || {};
       return fields.every((field, index) => {
@@ -161,7 +171,7 @@ const App = () => {
           const [min, max] = val;
           return record[field] >= min && record[field] <= max;
         } else {
-          return String(record[field]).toLowerCase().includes(String(val).toLowerCase());
+          return val.includes(record[field]);
         }
       });
     },
