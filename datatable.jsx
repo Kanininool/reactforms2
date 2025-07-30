@@ -2,26 +2,25 @@ import React, { useState, useRef } from 'react';
 import { Table, Input, Button, Space } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
-import 'antd/dist/reset.css';
 
 const data = [
   {
     key: '1',
-    name: 'John Brown',
+    firstName: 'John',
+    lastName: 'Brown',
     age: 32,
-    address: 'New York No. 1 Lake Park',
   },
   {
     key: '2',
-    name: 'Jim Green',
+    firstName: 'Jim',
+    lastName: 'Green',
     age: 42,
-    address: 'London No. 1 Lake Park',
   },
   {
     key: '3',
-    name: 'Joe Black',
-    age: 32,
-    address: 'Sidney No. 1 Lake Park',
+    firstName: 'Joe',
+    lastName: 'Black',
+    age: 29,
   },
 ];
 
@@ -30,12 +29,12 @@ const App = () => {
   const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef(null);
 
-  const getColumnSearchProps = (dataIndex) => ({
+  const getColumnSearchProps = (dataIndex, label) => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
       <div style={{ padding: 8 }}>
         <Input
           ref={searchInput}
-          placeholder={`Search ${dataIndex}`}
+          placeholder={`Search ${label}`}
           value={selectedKeys[0]}
           onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
           onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
@@ -59,7 +58,9 @@ const App = () => {
             Reset
           </Button>
         </Space>
-      filterIcon: (filtered) => (
+      </div>
+    ),
+    filterIcon: (filtered) => (
       <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
     ),
     onFilter: (value, record) =>
@@ -84,39 +85,46 @@ const App = () => {
       ),
   });
 
-  const handleSearch = (selectedKeys, confirm, dataIndex) => {
-    confirm();
-    setSearchText(selectedKeys[0]);
-    setSearchedColumn(dataIndex);
-  };
-
-  const handleReset = (clearFilters) => {
-    clearFilters();
-    setSearchText('');
-  };
-
   const columns = [
     {
       title: 'Name',
-      dataIndex: 'name',
       key: 'name',
-      ...getColumnSearchProps('name'),
+      render: (_, record) => (
+        <div>
+          <div>{record.firstName}</div>
+          <div style={{ color: 'gray' }}>{record.lastName}</div>
+        </div>
+      ),
+      filters: [], // No global filter here
+    },
+    {
+      title: 'First Name',
+      dataIndex: 'firstName',
+      key: 'firstName',
+     getColumnSearchProps('firstName', 'First Name'),
+      hidden: true, // used only for filtering
+    },
+    {
+      title: 'Last Name',
+      dataIndex: 'lastName',
+      key: 'lastName',
+      ...getColumnSearchProps('lastName', 'Last Name'),
+      hidden: true, // used only for filtering
     },
     {
       title: 'Age',
       dataIndex: 'age',
       key: 'age',
-      ...getColumnSearchProps('age'),
-    },
-    {
-      title: 'Address',
-      dataIndex: 'address',
-      key: 'address',
-      ...getColumnSearchProps('address'),
+      ...getColumnSearchProps('age', 'Age'),
     },
   ];
 
-  return <Table columns={columns} dataSource={data} />;
+  return (
+    <Table
+      columns={columns.filter(col => !col.hidden)}
+      dataSource={data}
+    />
+  );
 };
 
 export default App;
