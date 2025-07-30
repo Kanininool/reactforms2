@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Table,
@@ -48,7 +49,7 @@ const App = () => {
     setFilteredData(filtered);
   };
 
-  const getCombinedFilterDropdown = (fields, types, setSelectedKeys, selectedKeys, confirm) => {
+  const getCombinedFilterDropdown = (fields, types, setSelectedKeys, selectedKeys, confirm, clearFilters) => {
     const filters = selectedKeys[0] || {};
     return (
       <div style={{ padding: 8 }}>
@@ -120,21 +121,33 @@ const App = () => {
             );
           }
         })}
-        <Button
-          type="primary"
-          onClick={() => confirm()}
-          size="small"
-          style={{ marginTop: 8, width: '100%' }}
-        >
-          Filter
-        </Button>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Button
+            type="primary"
+            onClick={() => confirm()}
+            size="small"
+            style={{ width: '48%' }}
+          >
+            Filter
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedKeys([]);
+              confirm();
+            }}
+            size="small"
+            style={{ width: '48%' }}
+          >
+            Reset
+          </Button>
+        </div>
       </div>
     );
   };
 
   const getCombinedFilter = (fields, types) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-      getCombinedFilterDropdown(fields, types, setSelectedKeys, selectedKeys, confirm),
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
+      getCombinedFilterDropdown(fields, types, setSelectedKeys, selectedKeys, confirm, clearFilters),
     onFilter: (value, record) => {
       const filters = value || {};
       return fields.every((field, index) => {
