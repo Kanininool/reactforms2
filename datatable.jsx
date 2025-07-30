@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import {
   Table,
   Input,
@@ -14,6 +15,19 @@ import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+const fieldTypes = {
+  name: 'text',
+  id: 'text',
+  age: 'number',
+  city: 'text',
+  status: 'text',
+  department: 'text',
+  salary: 'number',
+  joinDate: 'date',
+  project: 'text',
+  manager: 'text',
+};
 
 const generateData = () => {
   const data = [];
@@ -35,31 +49,53 @@ const generateData = () => {
   return data;
 };
 
-const getUniqueValues = (data, field) => [...new Set(data.map(item => item[field]))];
-
 const App = () => {
-  const originalData = generateData();
+  const originalData = useMemo(() => generateData(), []);
   const [searchText, setSearchText] = useState('');
-  const [filteredData, setFilteredData] = useState(originalData);
+  const [filters, setFilters] = useState({});
 
   const handleGlobalSearch = (e) => {
-    const value = e.target.value.toLowerCase();
-    setSearchText(value);
-    const filtered = originalData.filter((item) =>
-      Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(value)
-      )
-    );
-    setFilteredData(filtered);
+    setSearchText(e.target.value.toLowerCase());
   };
 
-  const getCombinedFilterDropdown = (fields, types, setSelectedKeys, selectedKeys, confirm) => {
-    const filters = selectedKeys[0] || {};
+  const getUniqueValues = (field) => [
+    ...new Set(originalData.map((item) => item[field])),
+  ];
+
+  const filteredData = useMemo(() => {
+    return originalData.filter((record) => {
+      const globalMatch = Object.values(record).some((val) =>
+        String(val).toLowerCase().includes(searchText)
+      );
+
+      const fieldMatch = Object.entries(filters).every(([field, val]) => {
+        const type = fieldTypes[field];
+        if (!val || val.length === 0) return true;
+
+        if (type === 'date') {
+          const [start, end] = val;
+          const date = dayjs(record[field]);
+          return date.isAfter(start) && date.isBefore(end);
+        } else if (type === 'number') {
+          const [min, max] = val;
+          return record[field] >= min && record[field] <= max;
+        } else if (type === 'text') {
+          return val.includes(record[field]);
+        }
+
+        return true;
+      });
+
+      return globalMatch && fieldMatch;
+    });
+  }, [originalData, searchText, filters]);
+
+  const getCombinedFilterDropdown = (fields, confirm) => {
     return (
       <div style={{ padding: 8, maxHeight: 400, overflowY: 'auto' }}>
-        {fields.map((field, index) => {
-          const type = types[index];
-          const uniqueOptions = getUniqueValues(originalData, field);
+        {fields.map((field) => {
+          const type = fieldTypes[field];
+          const uniqueOptions = getUniqueValues(field);
           if (type === 'date') {
             return (
               <div key={field} style={{ marginBottom: 8 }}>
@@ -67,12 +103,10 @@ const App = () => {
                 <RangePicker
                   onChange={(dates) => {
                     const [start, end] = dates || [];
-                    setSelectedKeys([
-                      {
-                        ...filters,
-                        [field]: start && end ? [start, end] : [],
-                      },
-                    ]);
+                    setFilters((prev) => ({
+                      ...prev,
+                      [field]: start && end ? [start, end] : [],
+                    }));
                   }}
                 />
               </div>
@@ -84,24 +118,20 @@ const App = () => {
                 <InputNumber
                   placeholder="Min"
                   onChange={(val) =>
-                    setSelectedKeys([
-                      {
-                        ...filters,
-                        [field]: [val, filters?.[field]?.[1]],
-                      },
-                    ])
+                    setFilters((prev) => ({
+                      ...prev,
+                      [field]: [val, prev?.[field]?.[1]],
+                    }))
                   }
                   style={{ width: 90 }}
                 />
                 <InputNumber
                   placeholder="Max"
                   onChange={(val) =>
-                    setSelectedKeys([
-                      {
-                        ...filters,
-                        [field]: [filters?.[field]?.[0], val],
-                      },
-                    ])
+                    setFilters((prev) => ({
+                      ...prev,
+                      [field]: [prev?.[field]?.[0], val],
+                    }))
                   }
                   style={{ width: 90, marginLeft: 8 }}
                 />
@@ -118,12 +148,10 @@ const App = () => {
                   placeholder={`Select ${field}`}
                   value={filters?.[field] || []}
                   onChange={(vals) =>
-                    setSelectedKeys([
-                      {
-                        ...filters,
-                        [field]: vals,
-                      },
-                    ])
+                    setFilters((prev) => ({
+                      ...prev,
+                      [field]: vals,
+                    }))
                   }
                 >
                   {uniqueOptions.map((val) => (
@@ -137,12 +165,14 @@ const App = () => {
           }
         })}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-          <Button type="primary" onClick={() => confirm()} size="small" style={{ width: '48%' }}>
+          <Button type="primary" onClick={confirm} size="small" style={{ width: '48%' }}>
             Filter
           </Button>
           <Button
             onClick={() => {
-              setSelectedKeys([]);
+              const resetFields = {};
+              fields.forEach((f) => (resetFields[f] = []));
+              setFilters((prev) => ({ ...prev, ...resetFields }));
               confirm();
             }}
             size="small"
@@ -155,96 +185,48 @@ const App = () => {
     );
   };
 
-  const getCombinedFilter = (fields, types) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-      getCombinedFilterDropdown(fields, types, setSelectedKeys, selectedKeys, confirm),
-    onFilter: (value, record) => {
-      const filters = value || {};
-      return fields.every((field, index) => {
-        const val = filters[field];
-        if (!val || val.length === 0) return true;
-        if (types[index] === 'date') {
-          const [start, end] = val;
-          const date = dayjs(record[field]);
-          return date.isAfter(start) && date.isBefore(end);
-        } else if (types[index] === 'number') {
-          const [min, max] = val;
-          return record[field] >= min && record[field] <= max;
-        } else {
-          return val.includes(record[field]);
-        }
-      });
+  const getCombinedColumn = (title, fields) => ({
+    title,
+    key: title,
+    sorter: (a, b) => {
+      const fieldA = a[fields[0]];
+      const fieldB = b[fields[0]];
+      return typeof fieldA === 'number'
+        ? fieldA - fieldB
+        : String(fieldA).localeCompare(String(fieldB));
     },
+    render: (_, record) => (
+      <div>
+        {fields.map((field) => (
+          <div key={field}>
+            <strong>{field}:</strong> {record[field]}
+          </div>
+        ))}
+      </div>
+    ),
+    filterDropdown: ({ confirm }) =>
+      getCombinedFilterDropdown(fields, confirm),
+    onFilterDropdownVisibleChange: () => {},
   });
 
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'FilteredData');
     const excelBuffer = XLSX.write(workbook, {
       bookType: 'xlsx',
       type: 'array',
     });
     const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
-    saveAs(data, 'table_data.xlsx');
+    saveAs(data, 'filtered_table_data.xlsx');
   };
 
   const columns = [
-    {
-      title: 'Name & ID',
-      key: 'nameId',
-      render: (_, record) => (
-        <div>
-          <div><strong>{record.name}</strong></div>
-          <div style={{ color: 'gray' }}>{record.id}</div>
-        </div>
-      ),
-      ...getCombinedFilter(['name', 'id'], ['text', 'text']),
-    },
-    {
-      title: 'Age & City',
-      key: 'ageCity',
-      render: (_, record) => (
-        <div>
-          <div>Age: {record.age}</div>
-          <div>City: {record.city}</div>
-        </div>
-      ),
-      ...getCombinedFilter(['age', 'city'], ['number', 'text']),
-    },
-    {
-      title: 'Status & Department',
-      key: 'statusDept',
-      render: (_, record) => (
-        <div>
-          <div>Status: {record.status}</div>
-          <div>Dept: {record.department}</div>
-        </div>
-      ),
-      ...getCombinedFilter(['status', 'department'], ['text', 'text']),
-    },
-    {
-      title: 'Salary & Join Date',
-      key: 'salaryJoinDate',
-      render: (_, record) => (
-        <div>
-          <div>Salary: {record.salary}</div>
-          <div>Date: {record.joinDate}</div>
-        </div>
-      ),
-      ...getCombinedFilter(['salary', 'joinDate'], ['number', 'date']),
-    },
-    {
-      title: 'Project & Manager',
-      key: 'projectManager',
-      render: (_, record) => (
-        <div>
-          <div>Project: {record.project}</div>
-          <div>Manager: {record.manager}</div>
-        </div>
-      ),
-      ...getCombinedFilter(['project', 'manager'], ['text', 'text']),
-    },
+    getCombinedColumn('Name & ID', ['name', 'id']),
+    getCombinedColumn('Age & City', ['age', 'city']),
+    getCombinedColumn('Status & Department', ['status', 'department']),
+    getCombinedColumn('Salary & Join Date', ['salary', 'joinDate']),
+    getCombinedColumn('Project & Manager', ['project', 'manager']),
   ];
 
   return (
@@ -263,7 +245,11 @@ const App = () => {
       >
         Download Excel
       </Button>
-      <Table columns={columns} dataSource={filteredData} />
+      <Table
+        columns={columns}
+        dataSource={filteredData}
+        pagination={{ pageSize: 5 }}
+      />
     </div>
   );
 };
