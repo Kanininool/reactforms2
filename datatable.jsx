@@ -35,20 +35,21 @@ const App = () => {
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState(initialData);
 
-  const handleSearch = (fieldA, fieldB, value) => {
-    const newFilters = { ...filters, [fieldA]: value };
+  const handleSearch = (fieldA, fieldB, valueA, valueB) => {
+    const newFilters = { ...filters, [fieldA]: valueA, [fieldB]: valueB };
     setFilters(newFilters);
 
-    const filtered = initialData.filter((item) =>
-      [item[fieldA], item[fieldB]].some((field) =>
-        field.toLowerCase().includes(value.toLowerCase())
-      )
-    );
+    const filtered = initialData.filter((item) => {
+      const matchA = item[fieldA].toLowerCase().includes(valueA.toLowerCase());
+      const matchB = item[fieldB].toLowerCase().includes(valueB.toLowerCase());
+      return matchA && matchB;
+    });
+
     setFilteredData(filtered);
   };
 
-  const handleReset = (fieldA) => {
-    const newFilters = { ...filters, [fieldA]: '' };
+  const handleReset = (fieldA, fieldB) => {
+    const newFilters = { ...filters, [fieldA]: '', [fieldB]: '' };
     setFilters(newFilters);
     setFilteredData(initialData);
   };
@@ -59,16 +60,32 @@ const App = () => {
     filterDropdown: () => (
       <div style={{ padding: 8 }}>
         <Input
-          placeholder={`Search ${title}`}
+          placeholder={`Search ${fieldA}`}
           value={filters[fieldA] || ''}
-          onChange={(e) => handleSearch(fieldA, fieldB, e.target.value)}
-          onPressEnter={(e) => handleSearch(fieldA, fieldB, e.target.value)}
+          onChange={(e) =>
+            handleSearch(fieldA, fieldB, e.target.value, filters[fieldB] || '')
+          }
+          style={{ marginBottom: 8, display: 'block' }}
+        />
+        <Input
+          placeholder={`Search ${fieldB}`}
+          value={filters[fieldB] || ''}
+          onChange={(e) =>
+            handleSearch(fieldA, fieldB, filters[fieldA] || '', e.target.value)
+          }
           style={{ marginBottom: 8, display: 'block' }}
         />
         <Space>
           <Button
             type="primary"
-            onClick={() => handleSearch(fieldA, fieldB, filters[fieldA] || '')}
+            onClick={() =>
+              handleSearch(
+                fieldA,
+                fieldB,
+                filters[fieldA] || '',
+                filters[fieldB] || ''
+              )
+            }
             icon={<SearchOutlined />}
             size="small"
             style={{ width: 90 }}
@@ -76,7 +93,7 @@ const App = () => {
             Search
           </Button>
           <Button
-            onClick={() => handleReset(fieldA)}
+            onClick={() => handleReset(fieldA, fieldB)}
             size="small"
             style={{ width: 90 }}
           >
