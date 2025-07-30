@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Table, Input, Button, Space } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined, FilterFilled } from '@ant-design/icons';
 
 const initialData = [
   {
@@ -110,7 +110,11 @@ const App = () => {
       const isFiltered =
         (filters[fieldA] && filters[fieldA].trim() !== '') ||
         (fieldB && filters[fieldB] && filters[fieldB].trim() !== '');
-      return <SearchOutlined style={{ color: isFiltered ? '#1890ff' : undefined }} />;
+      return isFiltered ? (
+        <FilterFilled style={{ color: '#1890ff' }} />
+      ) : (
+        <SearchOutlined />
+      );
     },
     render: (_, record) => (
       <div>
@@ -130,7 +134,7 @@ const App = () => {
     getColumn('Relevant Experience', 'relevantExpYears', 'relevantExpMonths'),
     getColumn('Team Lead', 'teamLead', 'teamLeadEmail'),
     getColumn('Manager', 'manager', 'managerEmail'),
-    getColumn('Company', 'company', 'location'), // Can also be just getColumn('Company', 'company') if needed
+    getColumn('Company', 'company', 'location'),
   ];
 
   return <Table columns={columns} dataSource={filteredData} />;
