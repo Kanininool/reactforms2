@@ -1,5 +1,6 @@
+// src/App.js
 import React from "react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 const jsonData = [
@@ -9,40 +10,35 @@ const jsonData = [
 ];
 
 function App() {
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Sheet1");
+
+    // Add headers
     const headers = jsonData.map(col => col.column);
-    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    worksheet.addRow(headers);
 
     // Add empty rows for data entry
     for (let i = 0; i < 100; i++) {
-      const row = [];
-      for (let j = 0; j < headers.length; j++) {
-        row.push("");
-      }
-      XLSX.utils.sheet_add_aoa(ws, [row], { origin: -1 });
+      worksheet.addRow([]);
     }
 
-    // Add dropdowns using data validation
-    ws["!dataValidation"] = jsonData
-      .map((col, index) => {
-        if (col.data) {
-          const colLetter = XLSX.utils.encode_col(index);
-          return {
-            sqref: `${colLetter}2:${colLetter}101`, // rows 2 to 101
+    // Add dropdowns
+    jsonData.forEach((col, index) => {
+      if (col.data) {
+        for (let row = 2; row <= 101; row++) {
+          worksheet.getCell(row, index + 1).dataValidation = {
             type: "list",
-            formula1: `"${col.data.join(",")}"`,
+            allowBlank: true,
+            formulae: [`"${col.data.join(",")}"`],
             showDropDown: true
           };
         }
-        return null;
-      })
-      .filter(Boolean);
+      }
+    });
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([wbout], { type: "application/octet-stream" }), "dropdown_excel.xlsx");
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "dropdown_excel.xlsx");
   };
 
   return (
