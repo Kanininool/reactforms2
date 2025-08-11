@@ -1,55 +1,56 @@
-import React from "react";
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
-const jsonData = [
-  { column: "Name" },
-  { column: "Skills", data: ["Node", "React", "Python", "Perl"] },
-  { column: "Department", data: ["Engineering", "HR", "Finance"] }
-];
+export const generateExcelFile = async (columns, rows) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Sheet1');
 
-function App() {
-  const generateExcel = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Sheet1");
+  worksheet.columns = columns.map(col => ({
+    header: col.header,
+    key: col.key,
+    width: 20,
+  }));
 
-    // Add headers
-    const headers = jsonData.map(col => col.column);
-    worksheet.addRow(headers);
+  let hasMissingMandatory = false;
 
-    // Add empty rows for data entry
-    for (let i = 0; i < 100; i++) {
-      worksheet.addRow([]);
-    }
+  rows.forEach((row, rowIndex) => {
+    const addedRow = worksheet.addRow(row);
 
-    // Add dropdowns with strict validation
-    jsonData.forEach((col, index) => {
-      if (col.data) {
-        for (let row = 2; row <= 101; row++) {
-          worksheet.getCell(row, index + 1).dataValidation = {
-            type: "list",
-            allowBlank: false,
-            formulae: [`"${col.data.join(",")}"`],
-            showDropDown: true,
-            errorStyle: "stop",
-            showErrorMessage: true,
-            errorTitle: "Invalid Input",
-            error: `Please select a value from the dropdown list for "${col.column}".`
+    columns.forEach((col, colIndex) => {
+      const cell = worksheet.getCell(`${String.fromCharCode(65 + colIndex)}${rowIndex + 2}`);
+      const value = row[col.key]?.trim();
+
+      if (col.mandatory) {
+        if (!value) {
+          hasMissingMandatory = true;
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFCCCC' }, // light red
           };
         }
+
+        cell.dataValidation = {
+          type: 'textLength',
+          operator: 'greaterThan',
+          formula1: '0',
+          showErrorMessage: true,
+          allowBlank: false,
+          errorStyle: 'stop',
+          errorTitle: 'Required Field',
+          error: `${col.header} is mandatory.`,
+        };
       }
     });
+  });
 
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "strict_dropdown_excel.xlsx");
-  };
+  if (hasMissingMandatory) {
+    throw new Error('Mandatory fields are missing.');
+  }
 
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Strict Dropdown Excel Generator</h2>
-      <button onClick={generateExcel}>Generate Excel</button>
-    </div>
-  );
-}
-
-export default App;
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  saveAs(blob, 'validated_data.xlsx');
+};
