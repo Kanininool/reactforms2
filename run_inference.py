@@ -1,13 +1,13 @@
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 
 # Load the tokenizer and model from local directory
 model_dir = "./model"
-tokenizer = T5Tokenizer.from_pretrained(model_dir)
-model = T5ForConditionalGeneration.from_pretrained(model_dir)
+tokenizer = AutoTokenizer.from_pretrained(model_dir)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_dir)
 
 # Sample input query
-input_text = "translate to SQL: List all employees in Bangalore"
+input_text = "translate to SQL: Show all customers who made a purchase in the last 30 days"
 
 # Tokenize input
 inputs = tokenizer.encode(input_text, return_tensors="pt")
