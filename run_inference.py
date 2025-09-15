@@ -7,7 +7,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_dir)
 model = AutoModelForSeq2SeqLM.from_pretrained(model_dir)
 
 # Sample input query
-input_text = "translate to SQL: Show all customers who made a purchase in the last 30 days"
+input_text = "translate to SQL: List all customers who placed orders in January"
 
 # Tokenize input
 inputs = tokenizer.encode(input_text, return_tensors="pt")
