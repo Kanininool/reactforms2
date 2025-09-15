@@ -1,15 +1,14 @@
+
 from llama_cpp import Llama
 
-MODEL_PATH = "models/llama-2-7b-chat.Q4_K_M.gguf"
+llm = Llama(
+    model_path="./models/llama-2-7b-chat.Q4_K_M.gguf",  # Adjust path as needed
+    n_ctx=4096,             # Context window size
+    n_batch=512,            # Batch size for inference
+    n_gpu_layers=30,        # Number of layers offloaded to GPU (set to 0 for CPU-only)
+    f16_kv=True,            # Use fp16 for key/value cache
+    verbose=True            # Print debug info
+)
 
-def generate_sql_query(prompt_text):
-    llm = Llama(model_path=MODEL_PATH)
-    prompt = f"""You are an expert SQL generator. Convert the following natural language request into a SQL query:
-Request: "{prompt_text}"
-SQL:"""
-    output = llm(prompt, max_tokens=256)
-    print("Generated SQL:\n", output["choices"][0]["text"].strip())
-
-if __name__ == "__main__":
-    user_input = input("Enter your natural language request: ")
-    generate_sql_query(user_input)
+response = llm("What is the capital of France?")
+print(response)
