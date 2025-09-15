@@ -4,20 +4,24 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Install required system packages
+# Install required system packages for git-lfs and sentencepiece
 RUN apt-get update && apt-get install -y \
     wget \
     git \
     git-lfs \
+    curl \
+    ca-certificates \
     build-essential \
-    cmake && \
-    rm -rf /var/lib/apt/lists/*
+    cmake \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libsentencepiece-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 RUN pip install torch transformers sentencepiece
 
-
-# Clone the model repository using git-lfs to get all files
+# Clone the model repository using git-lfs and pull large files
 RUN git lfs install && \
     git clone https://huggingface.co/prem-research/prem-1B-SQL model && \
     cd model && git lfs pull
