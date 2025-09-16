@@ -1,14 +1,13 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-# Load TinyLlama model
-model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
+# Replace with your local path
+local_model_path = "/path/to/TinyLlama-1.1B-Chat-v1.0"
 
-# Create text generation pipeline
+tokenizer = AutoTokenizer.from_pretrained(local_model_path)
+model = AutoModelForCausalLM.from_pretrained(local_model_path)
+
 generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
-# Define schema context
 schema_context = """
 Database: employee_db
 Tables:
@@ -26,8 +25,6 @@ def nl_to_sql(nl_query):
     sql_query = response[0]['generated_text'].split("SQL:")[-1].strip()
     return sql_query
 
-# Example usage
 if __name__ == "__main__":
-    user_input = "List all employees who joined after 2020 and work in Bangalore"
-    sql = nl_to_sql(user_input)
-    print("Generated SQL Query:\n", sql)
+    user_input = "Show all employees working on the Apollo project"
+    print("Generated SQL:\n", nl_to_sql(user_input))
