@@ -1,14 +1,42 @@
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
-from llama_cpp import Llama
+# Load Phi-2 model and tokenizer
+model_name = "microsoft/phi-2"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, device_map="auto")
 
-llm = Llama(
-    model_path="./models/llama-2-7b-chat.Q4_K_M.gguf",  # Adjust path as needed
-    n_ctx=4096,             # Context window size
-    n_batch=512,            # Batch size for inference
-    n_gpu_layers=30,        # Number of layers offloaded to GPU (set to 0 for CPU-only)
-    f16_kv=True,            # Use fp16 for key/value cache
-    verbose=True            # Print debug info
-)
+# Define schema
+schema = """
+Database: employee_db
+Tables:
+- personal(emp_id, name, age, city)
+- work(emp_id, department, designation, doj)
+- asset(emp_id, laptop_id, phone_id)
+- project(emp_id, project_name, role, start_date, end_date)
+"""
 
-response = llm("What is the capital of France?")
-print(response)
+def generate_sql(nl_query: str, schema: str = schema) -> str:
+    prompt = f"""You are a helpful assistant that converts natural language to SQL.
+
+Schema:
+{schema}
+
+Question:
+{nl_query}
+
+SQL:"""
+
+    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+    outputs = model.generate(**inputs, max_new_tokens=256, temperature=0.2)
+    sql = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    # Extract only the SQL part
+    sql_lines = sql.split("SQL:")
+    return sql_lines[-1].strip() if len(sql_lines) > 1 else sql.strip()
+
+# Example usage
+if __name__ == "__main__":
+    question = input("Enter your question: ")
+    sql_query = generate_sql(question)
+    print("\nGenerated SQL:\n", sql_query)
