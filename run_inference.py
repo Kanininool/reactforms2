@@ -1,21 +1,33 @@
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import torch
+def generate_prompt_from_schema(schema_json, schema_name="Employees"):
+    prompt_lines = []
+    prompt_lines.append("You are an expert SQL generator.\n")
+    prompt_lines.append("Use the following PostgreSQL schema to generate SQL queries. Always include both the schema name and the table name in your SQL queries.\n")
+    prompt_lines.append(f"Schema Name: {schema_name}\n")
 
-# Load the tokenizer and model from local directory
-model_dir = "./model"
-tokenizer = AutoTokenizer.from_pretrained(model_dir)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_dir)
+    # Tables section
+    prompt_lines.append("Tables:")
+    for table_name, columns in schema_json.items():
+        column_defs = ", ".join([f"{col} {dtype.upper()}" for col, dtype in columns.items()])
+        prompt_lines.append(f"- {schema_name}.{table_name}({column_defs})")
 
-# Sample input query
-input_text = "translate to SQL: List all customers who placed orders in January"
+    # Relationships section
+    prompt_lines.append("\nRelationships:")
+    relationships = set()
+    for source_table, columns in schema_json.items():
+        for col in columns:
+            if col.lower() == "profileid":
+                for target_table, target_columns in schema_json.items():
+                    if "Id" in target_columns:
+                        relationships.add(f"- {schema_name}.{source_table}.{col} → {schema_name}.{target_table}.Id")
+    if relationships:
+        prompt_lines.extend(sorted(relationships))
+    else:
+        prompt_lines.append("- No foreign key relationships inferred.")
 
-# Tokenize input
-inputs = tokenizer.encode(input_text, return_tensors="pt")
+    # Instructions
+    prompt_lines.append("\nImportant:")
+    prompt_lines.append(f"- Do not use just 'FROM {schema_name}'. Always use 'FROM {schema_name}.TableName'.")
+    prompt_lines.append(f"- For example, use 'FROM {schema_name}.Personal_Data_Master' instead of 'FROM {schema_name}'.")
+    prompt_lines.append(f"- Use the Location column in {schema_name}.Personal_Data_Master to filter by city if available.")
 
-# Generate output
-outputs = model.generate(inputs, max_length=100, num_beams=4, early_stopping=True)
-
-# Decode and print the result
-sql_query = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print("Generated SQL Query:")
-print(sql_query)
+    return "\n".join(prompt_lines)
